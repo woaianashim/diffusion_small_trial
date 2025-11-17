@@ -1,0 +1,103 @@
+import math
+import torch
+from torch.utils.data import IterableDataset
+from torch.distributions import Categorical, Beta, Normal
+from typing import List, Tuple
+
+__all__ = ["FracTree"]
+
+
+class FracTree(IterableDataset):
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.generate_tree()
+
+        lengthes = (self.edges[:, 0] - self.edges[:, 1]).norm(dim=-1)
+        self.edge_dist = Categorical(probs=lengthes / lengthes.sum())
+        self.beta = Beta(cfg.sampler.beta_alpha, cfg.sampler.beta_beta)
+        self.normal = Normal(0, 1)
+
+    def __iter__(self):
+        for _ in range(self.cfg.sampler.batches_per_epoch):
+            yield self.sample_batch(self.cfg.sampler.batch_size)
+
+    def sample_batch(self, n):
+        points, labels = self.sample_points(n)
+        t = torch.rand((n,))
+        s = self.cfg.sampler.s
+        alpha_bar = (torch.cos((t + s) / (1 + s) * math.pi / 2) ** 2)[:, None]
+        noise = Normal(0, 1).sample((n, 2))
+        points_noised = points * alpha_bar.sqrt() + noise * (1 - alpha_bar).sqrt()
+        batch = {
+            "gt": points,
+            "noised": points_noised,
+            "noise": noise,
+            "t": t,
+            "label": labels,
+        }
+        return batch
+
+    def sample_points(self, n):
+        indeces = self.edge_dist.sample((n,))
+        s = self.beta.sample((n,))[..., None]
+        point = self.edges[indeces, 0] * s + self.edges[indeces, 1] * (1 - s)
+        return point, self.labels[indeces].view(n, -1)
+
+    def generate_tree(self):
+        self.radii: List[float] = [0.0]
+        nodes = []
+        edges = []
+        labels = []
+        base_label = torch.zeros((self.cfg.tree.depth, self.cfg.tree.branching))
+        acc = 0.0
+
+        for lvl in range(self.cfg.tree.depth):
+            acc += self.cfg.tree.L0 * (self.cfg.tree.k**lvl)
+            self.radii.append(acc)
+        root_node = (0, 0.0)
+
+        def rec(
+            level: int,
+            theta_left: float,
+            theta_right: float,
+            parent_xy: Tuple[float, float],
+            label: torch.Tensor,
+        ):
+
+            theta_c = 0.5 * (theta_left + theta_right)
+            r = self.radii[level]
+            x = root_node[0] + r * math.cos(math.pi * theta_c)
+            y = root_node[1] + r * math.sin(math.pi * theta_c)
+            nodes.append((x, y))
+
+            if level > 0:
+                labels.append(label)
+                edges.append((parent_xy, (x, y)))
+
+            if level == self.cfg.tree.depth:
+                return
+
+            # split sector among children with small gaps
+            sector = (theta_right - theta_left) * self.cfg.tree.sector_decay
+            base_left = theta_c - sector / 2.0
+            sub = sector / self.cfg.tree.branching
+            gap = sub * self.cfg.tree.gap_ratio
+
+            for i in range(self.cfg.tree.branching):
+                child_left = base_left + i * sub + gap
+                child_right = base_left + (i + 1) * sub - gap
+                label = label.clone()
+                label[level, i] = 1
+                rec(level + 1, child_left, child_right, (x, y), label)
+
+        # start recursion; root has no parent edge
+        rec(
+            0,
+            self.cfg.tree.root_angle - self.cfg.tree.fan / 2.0,
+            self.cfg.tree.root_angle + self.cfg.tree.fan / 2.0,
+            root_node,
+            base_label,
+        )
+        self.edges = torch.tensor(edges)
+        self.nodes = torch.tensor(nodes)
+        self.labels = torch.stack(labels, 0)
