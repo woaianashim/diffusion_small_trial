@@ -48,7 +48,8 @@ class FracTree(IterableDataset):
         nodes = []
         edges = []
         labels = []
-        base_label = torch.zeros((self.cfg.tree.depth, self.cfg.tree.branching))
+        base_label = torch.zeros((self.cfg.tree.depth, self.cfg.tree.branching + 1))
+        base_label[:, 0] = 1
         acc = 0.0
 
         for lvl in range(self.cfg.tree.depth):
@@ -86,9 +87,10 @@ class FracTree(IterableDataset):
             for i in range(self.cfg.tree.branching):
                 child_left = base_left + i * sub + gap
                 child_right = base_left + (i + 1) * sub - gap
-                label = label.clone()
-                label[level, i] = 1
-                rec(level + 1, child_left, child_right, (x, y), label)
+                child_label = label.clone()
+                child_label[level, 0] = 0
+                child_label[level, i + 1] = 1
+                rec(level + 1, child_left, child_right, (x, y), child_label)
 
         # start recursion; root has no parent edge
         rec(

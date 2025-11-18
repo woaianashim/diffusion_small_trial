@@ -13,7 +13,7 @@ class DenseNet(nn.Module):
         # first layer
         layers.append(
             nn.Linear(
-                self.in_dim + cfg.condition_branch * cfg.condition_depth,
+                self.in_dim + (cfg.condition_branch + 1) * cfg.condition_depth,
                 cfg.hidden_dim,
             )
         )
@@ -32,7 +32,10 @@ class DenseNet(nn.Module):
     def forward(self, noised, t, label=None):
         if label is None:
             label = torch.zeros(
-                (t.shape[0], self.cfg.condition_branch * self.cfg.condition_depth),
+                (
+                    t.shape[0],
+                    (self.cfg.condition_branch + 1) * self.cfg.condition_depth,
+                ),
                 device=t.device,
             )
         x = torch.cat([noised, t[..., None], label], dim=-1)

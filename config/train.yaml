@@ -4,7 +4,7 @@ defaults:
 mode: train
 checkpoint: null
 device: cuda
-epochs: 100
+epochs: 300
 save_period: 20
 
 data:
@@ -18,7 +18,7 @@ data:
     sector_decay: 0.9
     gap_ratio: 0.07
   sampler:
-    batch_size: 1000
+    batch_size: 2000
     batches_per_epoch: 300
     beta_alpha: 3.0
     beta_beta: 3.0
@@ -31,7 +31,7 @@ sampler:
   num_steps: 200
 
 optim:
-  lr: 1e-4
+  lr: 1e-3
 
 model:
   in_dim: 3

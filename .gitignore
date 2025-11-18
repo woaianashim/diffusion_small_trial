@@ -1,4 +1,5 @@
-outputs/2025-11-17
+outputs/
 src/__pycache__
 trajectory.mp4
-checkpoint.pt
+checkpoint*.pt
+outputs/2025-11-18
