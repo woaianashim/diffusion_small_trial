@@ -63,7 +63,10 @@ class Diffusion(nn.Module):
         with torch.no_grad():
             for i in reversed(range(timesteps)):
                 t = t_grid[i].expand(n)
-                eps_theta = self.model(x, t, labels)
+                eps_theta_cond = self.model(x, t, labels)
+                eps_theta_uncond = self.model(x, t)
+                w = self.cfg.sampler.cfg_omega
+                eps_theta = w * eps_theta_cond + (1 - w) * eps_theta_uncond
 
                 alpha_bar_t = alpha_bar[i]
                 sqrt_alpha_bar_t = alpha_bar_t.sqrt()

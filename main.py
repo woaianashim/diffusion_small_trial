@@ -15,11 +15,13 @@ def main(cfg):
         diffusion.run_train()
     if cfg.mode == "eval":
         batch = diffusion.data.sample_batch(10000)
-        _, steps = diffusion.sample(10000, batch["label"])
         red_label = torch.zeros((4, 4))
         green_label = torch.zeros((4, 4))
         red_label[0, 2] = 1
         green_label[1, 3] = 1
+        batch["label"][:5000] = red_label.view(-1)
+        batch["label"][5000:] = green_label.view(-1)
+        _, steps = diffusion.sample(10000, batch["label"])
         visualizer.save_trajectory(
             torch.stack(steps, dim=0),
             batch["label"],

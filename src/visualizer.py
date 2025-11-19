@@ -6,8 +6,8 @@ from torchvision.utils import draw_keypoints
 class Visualizer:
     def __init__(
         self,
-        image_size=256,
-        point_size=2,
+        image_size=512,
+        point_size=1,
         bg_color=(0, 0, 0),
         point_color=(255, 255, 255),
         video_path="trajectory.mp4",
