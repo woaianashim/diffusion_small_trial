@@ -67,6 +67,7 @@ class FracTree(IterableDataset):
         self.radii: List[float] = [0.0]
         nodes = []
         edges = []
+        label_masks = []
         labels = []
         base_label = torch.zeros((self.cfg.tree.depth, self.cfg.tree.branching + 1))
         base_label[:, 0] = 1
@@ -76,6 +77,11 @@ class FracTree(IterableDataset):
             acc += self.cfg.tree.L0 * (self.cfg.tree.k**lvl)
             self.radii.append(acc)
         root_node = (0, 0.0)
+        label_mask = (
+            torch.tensor(self.cfg.tree.mask)
+            if self.cfg.tree.mask
+            else torch.zeros((self.cfg.tree.depth))
+        )
 
         def rec(
             level: int,
@@ -83,8 +89,8 @@ class FracTree(IterableDataset):
             theta_right: float,
             parent_xy: Tuple[float, float],
             label: torch.Tensor,
+            mask: torch.Tensor,
         ):
-
             theta_c = 0.5 * (theta_left + theta_right)
             r = self.radii[level]
             x = root_node[0] + r * math.cos(math.pi * theta_c)
@@ -94,6 +100,8 @@ class FracTree(IterableDataset):
             if level > 0:
                 labels.append(label)
                 edges.append((parent_xy, (x, y)))
+                masked = (mask == 0).all()
+                label_masks.append(masked)
 
             if level == self.cfg.tree.depth:
                 return
@@ -110,7 +118,9 @@ class FracTree(IterableDataset):
                 child_label = label.clone()
                 child_label[level, 0] = 0
                 child_label[level, i + 1] = 1
-                rec(level + 1, child_left, child_right, (x, y), child_label)
+                child_mask = mask.clone()
+                child_mask[level] = i + 1 != child_mask[level]
+                rec(level + 1, child_left, child_right, (x, y), child_label, child_mask)
 
         # start recursion; root has no parent edge
         rec(
@@ -119,7 +129,12 @@ class FracTree(IterableDataset):
             self.cfg.tree.root_angle + self.cfg.tree.fan / 2.0,
             root_node,
             base_label,
+            label_mask,
         )
-        self.edges = torch.tensor(edges)
+        self.label_masks = torch.tensor(label_masks)
+        self.all_edges = torch.tensor(edges)
+        self.all_labels = torch.stack(labels, 0)
+        self.edges = self.all_edges[~self.label_masks]
+        self.labels = self.all_labels[~self.label_masks]
+        self.masked_labels = self.all_labels[self.label_masks]
         self.nodes = torch.tensor(nodes)
-        self.labels = torch.stack(labels, 0)

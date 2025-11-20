@@ -17,15 +17,16 @@ def main(cfg):
         batch = diffusion.data.sample_batch(10000)
         red_label = torch.zeros((4, 4))
         green_label = torch.zeros((4, 4))
-        red_label[0, 2] = 1
-        green_label[1, 3] = 1
+        # red_label[0, 2] = 1
+        # green_label[1, 3] = 1
+        green_label = diffusion.data.masked_labels[0]
         batch["label"][:5000] = red_label.view(-1)
         batch["label"][5000:] = green_label.view(-1)
         _, steps = diffusion.sample(10000, batch["label"])
         visualizer.save_trajectory(
             torch.stack(steps, dim=0),
             batch["label"],
-            label_colors={red_label: "red", green_label: "green"},
+            label_colors={red_label: "white", green_label: "green"},
         )
 
 

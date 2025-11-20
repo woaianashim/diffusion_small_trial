@@ -18,7 +18,7 @@ class Diffusion(nn.Module):
         self.data = FracTree(cfg.data)
         self.model = DenseNet(cfg.model)
         self.optimizer = torch.optim.AdamW(self.model.parameters(), **self.cfg.optim)
-        self.loss = torch.nn.MSELoss(reduce=False)  # No reduction for logging
+        self.loss = torch.nn.MSELoss(reduction="none")  # No reduction for logging
         self.to(cfg.device)
 
     def run_train(self):
