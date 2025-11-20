@@ -2,7 +2,7 @@ defaults:
   - _self_
 
 mode: train
-checkpoint: checkpoint.pt
+checkpoint: null #checkpoint.pt
 device: cuda
 epochs: 300
 save_period: 20
@@ -18,6 +18,7 @@ data:
     sector_decay: 0.9
     gap_ratio: 0.07
   sampler:
+    pre_sample: 0
     batch_size: 2000
     batches_per_epoch: 500
     beta_alpha: 3.0
@@ -29,10 +30,13 @@ dataloader:
 
 sampler:
   num_steps: 200
-  cfg_omega: 2
+  cfg_omega: 1
 
 optim:
   lr: 3e-4
+
+logging:
+  n_loss_bins: 10
 
 model:
   in_dim: 3

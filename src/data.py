@@ -16,6 +16,7 @@ class FracTree(IterableDataset):
         self.edge_dist = Categorical(probs=lengthes / lengthes.sum())
         self.beta = Beta(cfg.sampler.beta_alpha, cfg.sampler.beta_beta)
         self.normal = Normal(0, 1)
+        self._pre_sample_point()
 
     def __iter__(self):
         for _ in range(self.cfg.sampler.batches_per_epoch):
@@ -37,11 +38,30 @@ class FracTree(IterableDataset):
         }
         return batch
 
+    def _pre_sample_point(self):
+        n_pre_sampled = int(self.cfg.sampler.pre_sample)
+        if n_pre_sampled > 0:
+            indeces = self.edge_dist.sample((n_pre_sampled,))
+            s = self.beta.sample((n_pre_sampled,))[..., None]
+            self.pre_sampled_points = self.edges[indeces, 0] * s + self.edges[
+                indeces, 1
+            ] * (1 - s)
+            self.pre_sampled_labels = self.labels[indeces].view((n_pre_sampled, -1))
+
     def sample_points(self, n):
-        indeces = self.edge_dist.sample((n,))
-        s = self.beta.sample((n,))[..., None]
-        point = self.edges[indeces, 0] * s + self.edges[indeces, 1] * (1 - s)
-        return point, self.labels[indeces].view(n, -1)
+        n_pre_sampled = int(self.cfg.sampler.pre_sample)
+        if n_pre_sampled > 0:
+            indeces = torch.randint(low=0, high=n_pre_sampled, size=(n,))
+            points = self.pre_sampled_points[indeces]
+            labels = self.pre_sampled_labels[indeces]
+
+            return points, labels
+
+        else:
+            indeces = self.edge_dist.sample((n,))
+            s = self.beta.sample((n,))[..., None]
+            point = self.edges[indeces, 0] * s + self.edges[indeces, 1] * (1 - s)
+            return point, self.labels[indeces].view(n, -1)
 
     def generate_tree(self):
         self.radii: List[float] = [0.0]
