@@ -24,16 +24,8 @@ class FracTree(IterableDataset):
 
     def sample_batch(self, n):
         points, labels = self.sample_points(n)
-        t = torch.rand((n,))
-        s = self.cfg.sampler.s
-        alpha_bar = (torch.cos((t + s) / (1 + s) * math.pi / 2) ** 2)[:, None]
-        noise = Normal(0, 1).sample((n, 2))
-        points_noised = points * alpha_bar.sqrt() + noise * (1 - alpha_bar).sqrt()
         batch = {
             "gt": points,
-            "noised": points_noised,
-            "noise": noise,
-            "t": t,
             "label": labels,
         }
         return batch

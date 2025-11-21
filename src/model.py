@@ -10,10 +10,13 @@ class DenseNet(nn.Module):
         self.out_dim = cfg.out_dim
 
         layers = []
+        self.embedding_layer = nn.Linear(
+            (cfg.condition_branch + 1) * cfg.condition_depth, self.in_dim
+        )
         # first layer
         layers.append(
             nn.Linear(
-                self.in_dim + (cfg.condition_branch + 1) * cfg.condition_depth,
+                self.in_dim + self.in_dim,
                 cfg.hidden_dim,
             )
         )
@@ -38,5 +41,6 @@ class DenseNet(nn.Module):
                 ),
                 device=t.device,
             )
-        x = torch.cat([noised, t[..., None], label], dim=-1)
+        label_embedding = self.embedding_layer(label)
+        x = torch.cat([noised, t[..., None], label_embedding], dim=-1)
         return self.mlp(x)

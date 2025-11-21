@@ -4,7 +4,7 @@ defaults:
 mode: train
 checkpoint: null #checkpoint.pt
 device: cuda
-epochs: 300
+epochs: 400
 save_period: 20
 
 data:
@@ -24,17 +24,21 @@ data:
     batches_per_epoch: 500
     beta_alpha: 3.0
     beta_beta: 3.0
-    s: 0.008
 
 dataloader:
   num_workers: 4
 
 sampler:
-  num_steps: 200
+  s: 0.008
+  num_steps: 250
+  rho: 3
   cfg_omega: 1
+  mode: DDIM # DDIM or DDPM
+  eta:  0.1
 
 optim:
   lr: 3e-4
+  weight_decay: 0.05
 
 logging:
   n_loss_bins: 10
