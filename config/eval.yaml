@@ -1,8 +1,0 @@
-defaults:
-  - train
-  - _self_
-
-mode: eval
-checkpoint: checkpoint.pt
-
-

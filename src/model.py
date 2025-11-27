@@ -2,6 +2,21 @@ import torch
 import torch.nn as nn
 
 
+class ResBlock(nn.Module):
+    def __init__(self, hidden_dim, n_layers):
+        super().__init__()
+        layers = []
+        for _ in range(n_layers):
+            layers.append(nn.BatchNorm1d(hidden_dim))
+            layers.append(nn.Linear(hidden_dim, hidden_dim))
+            layers.append(nn.SiLU())
+        self.mlp = nn.Sequential(*layers)
+
+    def forward(self, x):
+        out = x + self.mlp(x)
+        return out
+
+
 class DenseNet(nn.Module):
     def __init__(self, cfg):
         super().__init__()
@@ -24,8 +39,7 @@ class DenseNet(nn.Module):
 
         # hidden layers
         for _ in range(cfg.num_layers - 1):
-            layers.append(nn.Linear(cfg.hidden_dim, cfg.hidden_dim))
-            layers.append(nn.SiLU())
+            layers.append(ResBlock(cfg.hidden_dim, 2))
 
         # final layer: outputs D_out + 1 features
         layers.append(nn.Linear(cfg.hidden_dim, self.out_dim))
