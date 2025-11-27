@@ -1,8 +1,8 @@
-jax>=0.4.31
-jaxlib>=0.4.31
-flax>=0.8.5
 matplotlib>=3.8
-torch==2.9.1
-torchvision==0.24.1
+torch==2.9.0+cu126
+torchvision==0.24.0+cu126
+ipywidgets==7.7.1
+jupyterlab_widgets==3.0.16
+plotly==5.24.1
 hydra-core==1.3.2
-av==16.0.1
+av>=16.0

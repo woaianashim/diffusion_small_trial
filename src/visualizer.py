@@ -6,6 +6,7 @@ from torchvision.utils import draw_keypoints
 class Visualizer:
     def __init__(
         self,
+        algo,
         image_size=512,
         point_size=1,
         bg_color=(0, 0, 0),
@@ -14,6 +15,7 @@ class Visualizer:
         animation_fps=25,
         last_frame_path="last_step.png",
     ):
+        self.algo = algo
         self.image_size = image_size
         self.point_size = point_size
         self.bg_color = torch.tensor(bg_color, dtype=torch.uint8)

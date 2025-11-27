@@ -126,7 +126,20 @@ class FracTree(IterableDataset):
         self.label_masks = torch.tensor(label_masks)
         self.all_edges = torch.tensor(edges)
         self.all_labels = torch.stack(labels, 0)
-        self.edges = self.all_edges[~self.label_masks]
-        self.labels = self.all_labels[~self.label_masks]
-        self.masked_labels = self.all_labels[self.label_masks]
         self.nodes = torch.tensor(nodes)
+
+    @property
+    def edges(self):
+        return self.all_edges[~self.label_masks]
+
+    @property
+    def masked_edges(self):
+        return self.all_edges[self.label_masks]
+
+    @property
+    def labels(self):
+        return self.all_labels[~self.label_masks]
+
+    @property
+    def masked_labels(self):
+        return self.all_labels[self.label_masks]

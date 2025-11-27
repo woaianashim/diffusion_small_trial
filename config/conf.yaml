@@ -1,8 +1,8 @@
 defaults:
   - _self_
 
-mode: train
-checkpoint: null #checkpoint.pt
+checkpoint: null
+mode: train # train | eval
 device: cuda
 epochs: 400
 save_period: 20
@@ -12,33 +12,31 @@ data:
     depth: 4
     branching: 3
     k: 0.8
-    L0: 1.
+    L0: 0.9
     root_angle: 0.5 # 0.5*pi
-    fan: 1.
-    sector_decay: 0.9
+    fan: 2.
+    sector_decay: 0.95
     gap_ratio: 0.07
     mask: [2,2,0,0]
   sampler:
     pre_sample: 0
     batch_size: 2000
     batches_per_epoch: 500
-    beta_alpha: 3.0
-    beta_beta: 3.0
+    beta_alpha: 1.0
+    beta_beta: 1.0
 
 dataloader:
   num_workers: 4
 
 sampler:
-  s: 0.008
   num_steps: 250
-  rho: 3
+  rho: 2
+  times_mode: cosine # polynomial | cosine | null
   cfg_omega: 1
-  mode: DDIM # DDIM or DDPM
-  eta:  0.1
 
 optim:
-  lr: 3e-4
-  weight_decay: 0.05
+  lr: 3e-3
+  weight_decay: 0.02
 
 logging:
   n_loss_bins: 10
@@ -48,5 +46,5 @@ model:
   condition_depth: ${data.tree.depth}
   condition_branch: ${data.tree.branching}
   out_dim: 2
-  hidden_dim: 128
+  hidden_dim: 256
   num_layers: 4

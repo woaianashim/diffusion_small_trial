@@ -1,0 +1,6 @@
+# @package _global_
+algo: diffusion
+sampler:
+  s: 0.008
+  mode: DDIM # DDIM or DDPM
+  eta:  0.0
