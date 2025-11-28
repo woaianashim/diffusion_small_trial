@@ -104,8 +104,6 @@ class BaseDensityModel(nn.Module):
                 x = self.step_along_vector(x, i, vector)
                 steps.append(x)
 
-                steps.append(x)
-
         return x, steps
 
     def step_along_vector(self, x, i, vector):
