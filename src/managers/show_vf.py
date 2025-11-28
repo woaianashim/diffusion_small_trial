@@ -3,14 +3,14 @@ import ipywidgets as widgets
 import plotly.graph_objects as go
 from IPython.display import display
 from .base_manager import BaseInteractiveManager
-from enum import StrEnum, auto
+from enum import Enum
 from dataclasses import dataclass
 
 
-class Mode(StrEnum):
-    GT = auto()
-    PRED = auto()
-    DIFF = auto()
+class Mode(Enum):
+    GT = "GT"
+    PRED = "PRED"
+    DIFF = "DIFF"
 
 
 @dataclass
