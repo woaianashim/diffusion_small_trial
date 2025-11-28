@@ -6,7 +6,7 @@ from .base_manager import BaseInteractiveManager
 
 
 class MaskEdges(BaseInteractiveManager):
-    def post_init(self, show_masked_edges=False, **kwargs):
+    def post_init(self):
         edges_all = self.tree.all_edges.detach().cpu().numpy()
         labels = self.tree.all_labels.detach().cpu().numpy()
         labels = labels.reshape(
@@ -15,7 +15,7 @@ class MaskEdges(BaseInteractiveManager):
         centers = edges_all.mean(1)
         edge_id_by_index = np.arange(centers.shape[0])
 
-        tree_data = self.tree_data(show_masked_edges)
+        tree_data = self.tree_data(self.show_masked_edges)
         tree_data.append(
             go.Scatter(
                 x=centers[..., 0],
@@ -43,7 +43,7 @@ class MaskEdges(BaseInteractiveManager):
             idx = edges.point_inds[0]
             assert self.tree.label_masks is not None
             self.tree.label_masks[idx] = ~self.tree.label_masks[idx]
-            self.regenerate_tree(self.fig, show_masked_edges)
+            self.regenerate_tree(self.fig, self.show_masked_edges)
             self.info_label.value = f"Selected edge #{edge_id_by_index[idx]}"
 
             with self.out:

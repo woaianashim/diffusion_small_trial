@@ -1,15 +1,16 @@
 import numpy as np
 import plotly.graph_objects as go
+from types import SimpleNamespace
+from dataclasses import dataclass, field
+from ..base_density_model import BaseDensityModel
 
 
+@dataclass
 class BaseInteractiveManager:
-    def __init__(self, algo, fig_size=900, **kwargs):
-        self.algo = algo
-        self.fig_size = fig_size
-        self.post_init(**kwargs)
-
-    def post_init(self, **kwargs):
-        pass
+    algo: BaseDensityModel
+    state: SimpleNamespace = field(default_factory=SimpleNamespace)
+    fig_size: int = 900
+    show_masked_edges: bool = False
 
     @property
     def tree(self):

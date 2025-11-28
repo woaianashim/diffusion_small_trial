@@ -5,8 +5,10 @@ from .base_manager import BaseInteractiveManager
 
 
 class ConfigureTree(BaseInteractiveManager):
-    def post_init(self, **kwargs):
-        self.fig = go.FigureWidget(self.tree_data(), layout=self.layout)
+    def __post_init__(self):
+        self.fig = go.FigureWidget(
+            self.tree_data(self.show_masked_edges), layout=self.layout
+        )
         self.fan_slider = widgets.FloatSlider(
             value=1.0,
             min=0.3,
