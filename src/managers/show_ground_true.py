@@ -18,6 +18,7 @@ class GroundTrue(BaseInteractiveManager):
         params = {"scale": scale, "t": t, "gt_vf": torch.empty(1)}
         grid = get_grid(50)
         params["gt_vf"] = self.algo.get_gt_vf(grid, t=torch.tensor(params["t"]))
+        params["gt_vf"] /= params["gt_vf"].norm(dim=-1).max()
         vf = torch.stack([grid, grid + params["gt_vf"] * params["scale"]], dim=1)
         vf_data = go.Scatter(
             **self.prepare_edges(vf),
@@ -33,7 +34,7 @@ class GroundTrue(BaseInteractiveManager):
         self.scale_slider = widgets.FloatSlider(
             value=scale,
             min=0.01,
-            max=0.2,
+            max=0.7,
             step=0.01,
             description="Scale",
             disabled=False,
@@ -70,6 +71,7 @@ class GroundTrue(BaseInteractiveManager):
         def update_time(change):
             params["t"] = change["new"]
             params["gt_vf"] = self.algo.get_gt_vf(grid, t=torch.tensor(params["t"]))
+            params["gt_vf"] /= params["gt_vf"].norm(dim=-1).max()
             vf = torch.stack([grid, grid + params["gt_vf"] * params["scale"]], dim=1)
             with self.fig.batch_update():
                 vf_xy = self.prepare_edges(vf)
