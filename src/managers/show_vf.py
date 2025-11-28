@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 from IPython.display import display
 from .base_manager import BaseInteractiveManager
 from enum import StrEnum, auto
+from dataclasses import dataclass
 
 
 class Mode(StrEnum):
@@ -12,12 +13,14 @@ class Mode(StrEnum):
     DIFF = auto()
 
 
+@dataclass
 class VectorField(BaseInteractiveManager):
     t: float = 0.5
     scale: float = 0.3
     grid_size: int = 50
     mode: Mode = Mode.GT
     vector: bool = True
+    title: str = "Vector Field"
 
     def __post_init__(self):
         tree_nodes = self.tree.nodes
@@ -46,8 +49,10 @@ class VectorField(BaseInteractiveManager):
 
         def update_figure(update_data=False):
             if update_data:
+                self.fig.layout.title = "Processing..."
                 self.state.vf = self.get_vector_field(grid)
                 self.state.vf /= self.state.vf.norm(dim=-1).max()
+                self.fig.layout.title = self.title
             vf = torch.stack([grid, grid + self.state.vf * self.scale], dim=1)
             with self.fig.batch_update():
                 vf_xy = self.prepare_edges(vf)
@@ -103,22 +108,28 @@ class VectorField(BaseInteractiveManager):
             self.mode = change["new"]
             update_figure(True)
 
-        self.mode_toggler.observe(update_mode, names="values")
+        self.mode_toggler.observe(update_mode, names="value")
 
     def __call__(self):
-        display(widgets.VBox([self.scale_slider, self.time_slider, self.fig]))
+        display(
+            widgets.VBox(
+                [self.mode_toggler, self.scale_slider, self.time_slider, self.fig]
+            )
+        )
 
     def get_vector_field(self, grid):
         if self.mode == Mode.GT:
             return self.algo.get_gt_vf(grid, t=torch.tensor(self.t))
         elif self.mode == Mode.DIFF:
             gt = self.algo.get_gt_vf(grid, t=torch.tensor(self.t))
-            pred = self.algo.get_vector_field(
-                grid.to(self.cfg.device), torch.tensor(self.t).to(self.cfg.device)
-            )
+            with torch.no_grad():
+                pred = self.algo.get_vector_field(
+                    grid.to(self.cfg.device), torch.tensor(self.t).to(self.cfg.device)
+                ).cpu()
             return gt - pred
         else:
-            pred = self.algo.get_vector_field(
-                grid.to(self.cfg.device), torch.tensor(self.t).to(self.cfg.device)
-            )
+            with torch.no_grad():
+                pred = self.algo.get_vector_field(
+                    grid.to(self.cfg.device), torch.tensor(self.t).to(self.cfg.device)
+                ).cpu()
             return pred

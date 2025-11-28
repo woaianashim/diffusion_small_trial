@@ -3,8 +3,10 @@ import plotly.graph_objects as go
 from IPython.display import display, clear_output
 import numpy as np
 from .base_manager import BaseInteractiveManager
+from dataclasses import dataclass
 
 
+@dataclass
 class MaskEdges(BaseInteractiveManager):
     def post_init(self):
         edges_all = self.tree.all_edges.detach().cpu().numpy()

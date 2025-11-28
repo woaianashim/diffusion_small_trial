@@ -11,6 +11,7 @@ class BaseInteractiveManager:
     state: SimpleNamespace = field(default_factory=SimpleNamespace)
     fig_size: int = 900
     show_masked_edges: bool = False
+    title: str = "Trre Structure"
 
     @property
     def tree(self):
@@ -80,7 +81,7 @@ class BaseInteractiveManager:
         x_range = [x_center - span / 2.0, x_center + span / 2.0]
         y_range = [y_center - span / 2.0, y_center + span / 2.0]
         return go.Layout(
-            title="Tree structure",
+            title=self.title,
             hovermode="closest",
             xaxis=dict(
                 title="X",

@@ -26,9 +26,11 @@ class BaseDensityModel(nn.Module):
         self.loss = torch.nn.MSELoss(reduction="none")
         self.to(self.device)
 
-    def load(self, checkpoint_path):
+    def load(self, checkpoint_path=None):
         checkpoint_path = checkpoint_path or f"checkpoints/{self.__class__.__name__}.pt"
-        self.load_state_dict(torch.load(checkpoint_path, map_location=self.cfg.device))
+        self.load_state_dict(
+            torch.load(checkpoint_path, map_location=torch.device(self.cfg.device))
+        )
 
     def run_train(self):
         self.train()

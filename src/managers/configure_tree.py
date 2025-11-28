@@ -2,8 +2,10 @@ import ipywidgets as widgets
 import plotly.graph_objects as go
 from IPython.display import display
 from .base_manager import BaseInteractiveManager
+from dataclasses import dataclass
 
 
+@dataclass
 class ConfigureTree(BaseInteractiveManager):
     def __post_init__(self):
         self.fig = go.FigureWidget(
