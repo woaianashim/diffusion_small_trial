@@ -117,13 +117,9 @@ class InteractiveManager:
                 return
 
             idx = edges.point_inds[0]
+            assert self.tree.label_masks is not None
             self.tree.label_masks[idx] = ~self.tree.label_masks[idx]
-            tree_data = self.tree_data(show_masked_edges)
-            with fig.batch_update():
-                fig.data[0].x = tree_data[0].x
-                fig.data[0].y = tree_data[0].y
-                fig.data[1].x = tree_data[1].x
-                fig.data[1].y = tree_data[1].y
+            self.regenerate_tree(fig, show_masked_edges)
             info_label.value = f"Selected edge #{edge_id_by_index[idx]}"
 
             with out:
@@ -140,21 +136,19 @@ class InteractiveManager:
             y_steps = x_steps + y.min() - x.min()
             return torch.stack(torch.meshgrid(x_steps, y_steps), dim=-1).view(-1, 2)
 
+        params = {"scale": scale, "t": t}
         grid = get_grid(50)
-        gt_vf = self.algo.get_gt_vf(grid, t=torch.tensor(t))
-        vf = torch.stack([grid, grid + gt_vf * scale], dim=1)
+        gt_vf = self.algo.get_gt_vf(grid, t=torch.tensor(params["t"]))
+        vf = torch.stack([grid, grid + gt_vf * params["scale"]], dim=1)
         vf_data = go.Scatter(
             **self.prepare_edges(vf),
-            mode="lines+markers",
-            line=dict(width=2),
-            marker=dict(size=6),
+            mode="lines",
+            line=dict(width=1),
             hoverinfo="none",
             name="edges",
         )
         tree_data = self.tree_data()
         tree_data.append(vf_data)
-        info_label = widgets.Label(value="GT vector field")
-        out = widgets.Output()
         fig = go.FigureWidget(tree_data, layout=self.layout)
 
         scale_slider = widgets.FloatSlider(
@@ -171,8 +165,8 @@ class InteractiveManager:
         )
 
         def update_scale(change):
-            new_scale = change["new"]
-            vf = torch.stack([grid, grid + gt_vf * new_scale], dim=1)
+            params["scale"] = change["new"]
+            vf = torch.stack([grid, grid + gt_vf * params["scale"]], dim=1)
             with fig.batch_update():
                 vf_xy = self.prepare_edges(vf)
                 fig.data[2].x = vf_xy["x"]
@@ -180,7 +174,32 @@ class InteractiveManager:
             self.regenerate_tree(fig)
 
         scale_slider.observe(update_scale, names="value")
-        display(widgets.VBox([scale_slider, fig]))
+
+        time_slider = widgets.FloatSlider(
+            value=params["t"],
+            min=0.01,
+            max=0.99,
+            step=0.01,
+            description="Time",
+            disabled=False,
+            continuous_update=False,
+            orientation="horizontal",
+            readout=True,
+            readout_format=".1f",
+        )
+
+        def update_time(change):
+            params["t"] = change["new"]
+            vf = torch.stack([grid, grid + gt_vf * params["scale"]], dim=1)
+            vf = torch.stack([grid, grid + gt_vf * params["scale"]], dim=1)
+            with fig.batch_update():
+                vf_xy = self.prepare_edges(vf)
+                fig.data[2].x = vf_xy["x"]
+                fig.data[2].y = vf_xy["y"]
+            self.regenerate_tree(fig)
+
+        time_slider.observe(update_scale, names="value")
+        display(widgets.VBox([scale_slider, time_slider, fig]))
 
     def tree_data(self, show_masked_edges=False):
         edges = self.tree.edges.detach().cpu().numpy()

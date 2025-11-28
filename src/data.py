@@ -10,13 +10,8 @@ __all__ = ["FracTree"]
 class FracTree(IterableDataset):
     def __init__(self, cfg):
         self.cfg = cfg
+        self.label_masks = None
         self.generate_tree()
-
-        lengthes = (self.edges[:, 0] - self.edges[:, 1]).norm(dim=-1)
-        self.edge_dist = Categorical(probs=lengthes / lengthes.sum())
-        self.beta = Beta(cfg.sampler.beta_alpha, cfg.sampler.beta_beta)
-        self.normal = Normal(0, 1)
-        self._pre_sample_point()
 
     def __iter__(self):
         for _ in range(self.cfg.sampler.batches_per_epoch):
@@ -123,23 +118,34 @@ class FracTree(IterableDataset):
             base_label,
             label_mask,
         )
-        self.label_masks = torch.tensor(label_masks)
+        if self.label_masks is None or len(self.label_masks) != len(label_masks):
+            self.label_masks = torch.tensor(label_masks)
         self.all_edges = torch.tensor(edges)
         self.all_labels = torch.stack(labels, 0)
         self.nodes = torch.tensor(nodes)
 
+        lengthes = (self.edges[:, 0] - self.edges[:, 1]).norm(dim=-1)
+        self.edge_dist = Categorical(probs=lengthes / lengthes.sum())
+        self.beta = Beta(self.cfg.sampler.beta_alpha, self.cfg.sampler.beta_beta)
+        self.normal = Normal(0, 1)
+        self._pre_sample_point()
+
     @property
     def edges(self):
+        assert self.label_masks is not None
         return self.all_edges[~self.label_masks]
 
     @property
     def masked_edges(self):
+        assert self.label_masks is not None
         return self.all_edges[self.label_masks]
 
     @property
     def labels(self):
+        assert self.label_masks is not None
         return self.all_labels[~self.label_masks]
 
     @property
     def masked_labels(self):
+        assert self.label_masks is not None
         return self.all_labels[self.label_masks]
