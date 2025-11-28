@@ -5,9 +5,9 @@ from .base_manager import BaseInteractiveManager
 
 
 class ConfigureTree(BaseInteractiveManager):
-    def __call__(self):
-        fig = go.FigureWidget(self.tree_data(), layout=self.layout)
-        fan_slider = widgets.FloatSlider(
+    def post_init(self, **kwargs):
+        self.fig = go.FigureWidget(self.tree_data(), layout=self.layout)
+        self.fan_slider = widgets.FloatSlider(
             value=1.0,
             min=0.3,
             max=2.0,
@@ -22,10 +22,10 @@ class ConfigureTree(BaseInteractiveManager):
 
         def update_fan(change):
             self.tree.cfg.tree.fan = change["new"]
-            self.regenerate_tree(fig)
+            self.regenerate_tree(self.fig)
 
-        fan_slider.observe(update_fan, names="value")
-        branch_slider = widgets.IntSlider(
+        self.fan_slider.observe(update_fan, names="value")
+        self.branch_slider = widgets.IntSlider(
             value=3,
             min=2,
             max=4,
@@ -39,7 +39,13 @@ class ConfigureTree(BaseInteractiveManager):
 
         def update_branching(change):
             self.tree.cfg.tree.branching = change["new"]
-            self.regenerate_tree(fig)
+            self.regenerate_tree(self.fig)
 
-        branch_slider.observe(update_branching, names="value")
-        display(widgets.HBox([widgets.VBox([fan_slider, branch_slider]), fig]))
+        self.branch_slider.observe(update_branching, names="value")
+
+    def __call__(self):
+        display(
+            widgets.HBox(
+                [widgets.VBox([self.fan_slider, self.branch_slider]), self.fig]
+            )
+        )

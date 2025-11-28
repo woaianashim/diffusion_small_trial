@@ -6,6 +6,10 @@ class BaseInteractiveManager:
     def __init__(self, algo, fig_size=900):
         self.algo = algo
         self.fig_size = fig_size
+        self.post_init()
+
+    def post_init(self):
+        pass
 
     @property
     def tree(self):

@@ -6,7 +6,7 @@ from .base_manager import BaseInteractiveManager
 
 
 class MaskEdges(BaseInteractiveManager):
-    def __call__(self, show_masked_edges=False):
+    def post_init(self, show_masked_edges=False, **kwargs):
         edges_all = self.tree.all_edges.detach().cpu().numpy()
         labels = self.tree.all_labels.detach().cpu().numpy()
         labels = labels.reshape(
@@ -30,12 +30,11 @@ class MaskEdges(BaseInteractiveManager):
                 ],
             ),
         )
-        info_label = widgets.Label(value="Select edge")
-        out = widgets.Output()
-        fig = go.FigureWidget(tree_data, layout=self.layout)
-        display(info_label, fig, out)
+        self.fig = go.FigureWidget(tree_data, layout=self.layout)
+        self.out = widgets.Output()
+        self.info_label = widgets.Label(value="Select edge")
 
-        edge_buttons = fig.data[-1]
+        edge_buttons = self.fig.data[-1]
 
         def handle_click(trace, edges, state):
             if not edges.point_inds:
@@ -44,10 +43,13 @@ class MaskEdges(BaseInteractiveManager):
             idx = edges.point_inds[0]
             assert self.tree.label_masks is not None
             self.tree.label_masks[idx] = ~self.tree.label_masks[idx]
-            self.regenerate_tree(fig, show_masked_edges)
-            info_label.value = f"Selected edge #{edge_id_by_index[idx]}"
+            self.regenerate_tree(self.fig, show_masked_edges)
+            self.info_label.value = f"Selected edge #{edge_id_by_index[idx]}"
 
-            with out:
+            with self.out:
                 clear_output(wait=True)
 
         edge_buttons.on_click(handle_click)
+
+    def __call__(self):
+        display(self.info_label, self.fig, self.out)

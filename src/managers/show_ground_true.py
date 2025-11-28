@@ -6,7 +6,7 @@ from .base_manager import BaseInteractiveManager
 
 
 class GroundTrue(BaseInteractiveManager):
-    def __call__(self, show_masked_edges=False, t=0.5, scale=0.05):
+    def post_init(self, show_masked_edges=False, t=0.5, scale=0.05, **kwargs):
         tree_nodes = self.tree.nodes
         x, y = tree_nodes[:, 0], tree_nodes[:, 1]
 
@@ -28,9 +28,9 @@ class GroundTrue(BaseInteractiveManager):
         )
         tree_data = self.tree_data(show_masked_edges)
         tree_data.append(vf_data)
-        fig = go.FigureWidget(tree_data, layout=self.layout)
+        self.fig = go.FigureWidget(tree_data, layout=self.layout)
 
-        scale_slider = widgets.FloatSlider(
+        self.scale_slider = widgets.FloatSlider(
             value=scale,
             min=0.01,
             max=0.2,
@@ -46,15 +46,15 @@ class GroundTrue(BaseInteractiveManager):
         def update_scale(change):
             params["scale"] = change["new"]
             vf = torch.stack([grid, grid + gt_vf * params["scale"]], dim=1)
-            with fig.batch_update():
+            with self.fig.batch_update():
                 vf_xy = self.prepare_edges(vf)
-                fig.data[2].x = vf_xy["x"]
-                fig.data[2].y = vf_xy["y"]
-            self.regenerate_tree(fig)
+                self.fig.data[2].x = vf_xy["x"]
+                self.fig.data[2].y = vf_xy["y"]
+            self.regenerate_tree(self.fig)
 
-        scale_slider.observe(update_scale, names="value")
+        self.scale_slider.observe(update_scale, names="value")
 
-        time_slider = widgets.FloatSlider(
+        self.time_slider = widgets.FloatSlider(
             value=params["t"],
             min=0.01,
             max=0.99,
@@ -71,11 +71,13 @@ class GroundTrue(BaseInteractiveManager):
             params["t"] = change["new"]
             gt_vf = self.algo.get_gt_vf(grid, t=torch.tensor(params["t"]))
             vf = torch.stack([grid, grid + gt_vf * params["scale"]], dim=1)
-            with fig.batch_update():
+            with self.fig.batch_update():
                 vf_xy = self.prepare_edges(vf)
-                fig.data[2].x = vf_xy["x"]
-                fig.data[2].y = vf_xy["y"]
-            self.regenerate_tree(fig)
+                self.fig.data[2].x = vf_xy["x"]
+                self.fig.data[2].y = vf_xy["y"]
+            self.regenerate_tree(self.fig)
 
-        time_slider.observe(update_time, names="value")
-        display(widgets.VBox([scale_slider, time_slider, fig]))
+        self.time_slider.observe(update_time, names="value")
+
+    def __call__(self):
+        display(widgets.VBox([self.scale_slider, self.time_slider, self.fig]))
