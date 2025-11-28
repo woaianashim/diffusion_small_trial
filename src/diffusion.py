@@ -77,6 +77,7 @@ class Diffusion(BaseDensityModel):
                 / (1 - alpha_bar.sqrt())
             )
             dist2 = (noise**2).sum(-1, keepdim=True)
+            dist2 -= dist2.min(0, keepdim=True).values
             weight = torch.exp(-dist2)
             diff_weighted = noise * weight
             E = diff_weighted.sum(dim=0) / (weight.sum(0) + 1e-9)

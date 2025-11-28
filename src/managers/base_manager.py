@@ -3,12 +3,12 @@ import plotly.graph_objects as go
 
 
 class BaseInteractiveManager:
-    def __init__(self, algo, fig_size=900):
+    def __init__(self, algo, fig_size=900, **kwargs):
         self.algo = algo
         self.fig_size = fig_size
-        self.post_init()
+        self.post_init(**kwargs)
 
-    def post_init(self):
+    def post_init(self, **kwargs):
         pass
 
     @property

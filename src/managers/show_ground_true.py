@@ -15,10 +15,10 @@ class GroundTrue(BaseInteractiveManager):
             y_steps = x_steps + y.min() - x.min()
             return torch.stack(torch.meshgrid(x_steps, y_steps), dim=-1).view(-1, 2)
 
-        params = {"scale": scale, "t": t}
+        params = {"scale": scale, "t": t, "gt_vf": torch.empty(1)}
         grid = get_grid(50)
-        gt_vf = self.algo.get_gt_vf(grid, t=torch.tensor(params["t"]))
-        vf = torch.stack([grid, grid + gt_vf * params["scale"]], dim=1)
+        params["gt_vf"] = self.algo.get_gt_vf(grid, t=torch.tensor(params["t"]))
+        vf = torch.stack([grid, grid + params["gt_vf"] * params["scale"]], dim=1)
         vf_data = go.Scatter(
             **self.prepare_edges(vf),
             mode="lines",
@@ -45,7 +45,7 @@ class GroundTrue(BaseInteractiveManager):
 
         def update_scale(change):
             params["scale"] = change["new"]
-            vf = torch.stack([grid, grid + gt_vf * params["scale"]], dim=1)
+            vf = torch.stack([grid, grid + params["gt_vf"] * params["scale"]], dim=1)
             with self.fig.batch_update():
                 vf_xy = self.prepare_edges(vf)
                 self.fig.data[2].x = vf_xy["x"]
@@ -56,21 +56,21 @@ class GroundTrue(BaseInteractiveManager):
 
         self.time_slider = widgets.FloatSlider(
             value=params["t"],
-            min=0.01,
+            min=0.001,
             max=0.99,
-            step=0.01,
+            step=0.001,
             description="Time",
             disabled=False,
             continuous_update=False,
             orientation="horizontal",
             readout=True,
-            readout_format=".1f",
+            readout_format=".3f",
         )
 
         def update_time(change):
             params["t"] = change["new"]
-            gt_vf = self.algo.get_gt_vf(grid, t=torch.tensor(params["t"]))
-            vf = torch.stack([grid, grid + gt_vf * params["scale"]], dim=1)
+            params["gt_vf"] = self.algo.get_gt_vf(grid, t=torch.tensor(params["t"]))
+            vf = torch.stack([grid, grid + params["gt_vf"] * params["scale"]], dim=1)
             with self.fig.batch_update():
                 vf_xy = self.prepare_edges(vf)
                 self.fig.data[2].x = vf_xy["x"]
