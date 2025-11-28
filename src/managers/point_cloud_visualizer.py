@@ -5,6 +5,7 @@ import torch
 from typing import Sequence
 import plotly.graph_objects as go
 from functools import partial
+from dataclasses import dataclass
 
 
 import numpy as np
@@ -147,7 +148,8 @@ class PointCloudVisualizer(BaseInteractiveManager):
         dist2 = (proj_x - cx) ** 2 + (proj_y - cy) ** 2
         idx = dist2.argmin()
         return idx
-    def get_figure(self,base_colors,out):
+    def get_figure(self,out):
+
         x0 = self.edges[:, 0, 0]
         y0 = self.edges[:, 0, 1]
         x1 = self.edges[:, 1, 0]
@@ -166,7 +168,7 @@ class PointCloudVisualizer(BaseInteractiveManager):
                     y=self.points[:, 1],
                     mode="markers",
                     name="points",
-                    marker=dict(color=base_colors, size=6),
+                    marker=dict(color=self.base_colors, size=6),
                 ),
                 # 1: full tree
                 go.Scatter(
@@ -214,7 +216,7 @@ class PointCloudVisualizer(BaseInteractiveManager):
             #
             #
             # # # # recompute colors: start from base colors, only override highlighted points
-            new_colors = base_colors.copy()
+            new_colors = self.base_colors.copy()
             new_colors[mask_t] = self.highlight_color
             #
             # # # # update highlighted edge coordinates
