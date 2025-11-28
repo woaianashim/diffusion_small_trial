@@ -125,7 +125,7 @@ class VectorField(BaseInteractiveManager):
             with torch.no_grad():
                 pred = self.algo.get_vector_field(
                     grid.to(self.cfg.device), torch.tensor(self.t).to(self.cfg.device)
-                ).cpu()[:, ::-1, ::-1]
+                ).cpu()
             return gt - pred
         else:
             with torch.no_grad():
