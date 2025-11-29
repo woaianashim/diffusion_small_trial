@@ -21,31 +21,49 @@ class Diffusion(BaseDensityModel):
 
     def step_along_vector(self, x, i, vector):
         if self.cfg.sampler.mode == "DDIM":
-            mean = (
-                (x - (1 - self.alpha_bar[i]).sqrt() * vector)
-                / self.alpha_bar[i].sqrt()
-                * self.alpha_bar[i - 1].sqrt()
+            return self.ddim_step_along_vector(x, i, vector, self.cfg.sampler.eta)
+        elif self.cfg.sampler.mode == "DDPM":
+            return self.ddpm_step_along_vector(x, i, vector)
+        else:
+            return self.update_step_along_vector(x, i, vector)
+
+    def update_step_along_vector(self, x, i, vector):
+        return x
+
+    def ddim_step_along_vector(self, x, i, vector, eta=0.0):
+        alpha_bar_t = self.alpha_bar[i]
+        alpha_bar_t_m_1 = self.alpha_bar[i - 1]
+        mean = (
+            (x - (1 - alpha_bar_t).sqrt() * vector)
+            / alpha_bar_t.sqrt()
+            * alpha_bar_t_m_1.sqrt()
+        )
+        if i > 1:
+            eps = torch.randn_like(x)
+            sigma_eta = (
+                eta
+                * ((1 - alpha_bar_t_m_1) / (1 - alpha_bar_t)).sqrt()
+                * (1 - alpha_bar_t / alpha_bar_t_m_1).sqrt()
+            )
+            x = (
+                mean
+                + (1 - alpha_bar_t_m_1 - sigma_eta**2).sqrt() * vector
+                + sigma_eta * eps
             )
         else:
-            mean = (
-                x - (self.beta[i] / torch.sqrt(1.0 - self.alpha_bar[i])) * vector
-            ) / torch.sqrt(self.alpha[i])
+            x = mean
+        return x
 
-        if i > 1 and self.alpha[i - 1] < 1 - 1e-6:
+    def ddpm_step_along_vector(self, x, i, vector):
+        beta_t, alpha_t, alpha_bar_t = (
+            self.beta[i],
+            self.alpha[i],
+            self.alpha_bar[i],
+        )
+        mean = (x - (beta_t * (1.0 - alpha_bar_t).rsqrt()) * vector) * alpha_t.rsqrt()
+        if i > 1:
             eps = torch.randn_like(x)
-            if self.cfg.sampler.mode == "DDIM":
-                sigma_eta = (
-                    self.cfg.sampler.eta
-                    * ((1 - self.alpha_bar[i - 1]) / (1 - self.alpha_bar[i])).sqrt()
-                    * (1 - self.alpha_bar[i] / self.alpha_bar[i - 1]).sqrt()
-                )
-                x = (
-                    mean
-                    + (1 - self.alpha_bar[i - 1] - sigma_eta**2).sqrt() * vector
-                    + sigma_eta * eps
-                )
-            else:
-                x = mean + self.beta[i].sqrt() * eps
+            x = mean + beta_t.sqrt() * eps
         else:
             x = mean
         return x
@@ -55,7 +73,8 @@ class Diffusion(BaseDensityModel):
         alpha_bar = torch.cos((t + s) / (1 + s) * torch.pi / 2) ** 2
         return alpha_bar
 
-    def get_gt_vf(self, noised, t, labels=None):
+    def get_gt_vf(self, noised, t, labels=None, custom_vf_fn=None):
+        vf_fn = custom_vf_fn if custom_vf_fn else self.get_gt_vf_chunk
         alpha_bar = self._alpha_bar(t).to(self.cfg.device)
         batch_size = noised.shape[0]
 
@@ -76,16 +95,20 @@ class Diffusion(BaseDensityModel):
             end = min(start + chunk_size, batch_size)
             noised_chunk = noised[start:end]
 
-            noise = (
-                ((noised_chunk * alpha_bar.rsqrt())[None] - pts[:, None])
-                * alpha_bar.sqrt()
-                * (1 - alpha_bar).rsqrt()
-            )
-            dist2 = (noise**2).sum(-1, keepdim=True)
-            dist2 -= dist2.min(0, keepdim=True).values
-            weight = torch.exp(-dist2 / 2)
-            diff_weighted = noise * weight
-            E = diff_weighted.sum(dim=0) / (weight.sum(0) + 1e-9)
+            E = vf_fn(noised_chunk, pts, alpha_bar)
             res.append(E)
         vf = torch.cat(res, dim=0)
         return vf
+
+    def get_gt_vf_chunk(self, noised, data_points, alpha_bar_t):
+        noise = (
+            ((noised * alpha_bar_t.rsqrt())[None] - data_points[:, None])
+            * alpha_bar_t.sqrt()
+            * (1 - alpha_bar_t).rsqrt()
+        )
+        dist2 = (noise**2).sum(-1, keepdim=True)
+        dist2 -= dist2.min(0, keepdim=True).values
+        weight = torch.exp(-dist2 / 2)
+        diff_weighted = noise * weight
+        E = diff_weighted.sum(dim=0) / (weight.sum(0) + 1e-9)
+        return E
