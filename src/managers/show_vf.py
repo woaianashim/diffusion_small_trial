@@ -5,12 +5,14 @@ from IPython.display import display
 from .base_manager import BaseInteractiveManager
 from enum import Enum
 from dataclasses import dataclass
+from typing import Callable, Optional
 
 
 class Mode(Enum):
     GT = "GT"
     PRED = "PRED"
     DIFF = "DIFF"
+    CUSTOM = "CUSTOM"
 
 
 @dataclass
@@ -21,6 +23,7 @@ class VectorField(BaseInteractiveManager):
     mode: Mode = Mode.GT
     vector: bool = True
     title: str = "Vector Field"
+    custom_vf_getter: Optional[Callable] = None
 
     def __post_init__(self):
         tree_nodes = self.tree.nodes
@@ -98,7 +101,7 @@ class VectorField(BaseInteractiveManager):
 
         self.time_slider.observe(update_time, names="value")
         self.mode_toggler = widgets.ToggleButtons(
-            options=[Mode.GT, Mode.PRED, Mode.DIFF],
+            options=[Mode.GT, Mode.PRED, Mode.DIFF, Mode.CUSTOM],
             description="Mode:",
             disabled=False,
             button_style="",
@@ -127,6 +130,9 @@ class VectorField(BaseInteractiveManager):
                     grid.to(self.cfg.device), torch.tensor(self.t).to(self.cfg.device)
                 ).cpu()
             return gt - pred
+        elif self.mode == Mode.CUSTOM:
+            assert self.custom_vf_getter is not None
+            return self.custom_vf_getter(self.algo, grid, self.t)
         else:
             with torch.no_grad():
                 pred = self.algo.get_vector_field(

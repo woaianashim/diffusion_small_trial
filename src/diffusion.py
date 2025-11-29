@@ -55,7 +55,7 @@ class Diffusion(BaseDensityModel):
         alpha_bar = torch.cos((t + s) / (1 + s) * torch.pi / 2) ** 2
         return alpha_bar
 
-    def get_gt_vf(self, noised, t):
+    def get_gt_vf(self, noised, t, labels=None):
         alpha_bar = self._alpha_bar(t).to(self.cfg.device)
         batch_size = noised.shape[0]
 
@@ -67,7 +67,12 @@ class Diffusion(BaseDensityModel):
         chunk_size = 1024
 
         res = []
-        for start in tqdm(range(0, batch_size, chunk_size)):
+        brun = (
+            (range(0, batch_size, chunk_size))
+            if self.quiet
+            else tqdm(range(0, batch_size, chunk_size))
+        )
+        for start in brun:
             end = min(start + chunk_size, batch_size)
             noised_chunk = noised[start:end]
 

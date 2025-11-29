@@ -1,4 +1,5 @@
 import os
+from abc import ABC, abstractmethod
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -10,9 +11,10 @@ from hydra.core.hydra_config import HydraConfig
 import logging
 
 
-class BaseDensityModel(nn.Module):
+class BaseDensityModel(nn.Module, ABC):
     def __init__(self, cfg):
         super().__init__()
+        self.quiet = True
         self.cfg = cfg
         self.device = cfg.device
         self.data = FracTree(cfg.data)
@@ -25,6 +27,21 @@ class BaseDensityModel(nn.Module):
         )
         self.loss = torch.nn.MSELoss(reduction="none")
         self.to(self.device)
+
+    @abstractmethod
+    def noise_forward(self, x):
+        raise NotImplementedError
+
+    @abstractmethod
+    def step_along_vector(self, x, i, vector):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_gt_vf(self, noised, t, labels=None):
+        raise NotImplementedError
+
+    def precompute_sample_metadata(self, t_grid):
+        pass
 
     def load(self, checkpoint_path=None):
         checkpoint_path = checkpoint_path or f"checkpoints/{self.__class__.__name__}.pt"
@@ -43,7 +60,8 @@ class BaseDensityModel(nn.Module):
             epoch_loss = torch.zeros((n_bins,), device=self.device)
             epoch_seen = torch.ones((n_bins,), device=self.device)
 
-            for batch in tqdm(dataloader):
+            brun = dataloader if self.quiet else tqdm(dataloader)
+            for batch in brun:
                 seen += len(batch["gt"])
                 x, label = (
                     batch["gt"].to(self.device).squeeze(0),
@@ -71,9 +89,6 @@ class BaseDensityModel(nn.Module):
                     self.state_dict(), f"checkpoints/{self.__class__.__name__}.pt"
                 )
 
-    def noise_forward(self, x):
-        raise NotImplementedError
-
     def sampling_times(self):
         timesteps = self.cfg.sampler.num_steps
         t_grid = torch.linspace(0.0, 1.0, timesteps + 2, device=self.cfg.device)[:-1]
@@ -83,7 +98,7 @@ class BaseDensityModel(nn.Module):
 
         return t_grid
 
-    def sample(self, n, labels=None, initial_noise=None):
+    def sample(self, n, labels=None, initial_noise=None, from_gt=False):
         self.eval()
         device = self.device
         if labels is not None:
@@ -99,18 +114,20 @@ class BaseDensityModel(nn.Module):
         steps = [x]
 
         with torch.no_grad():
-            for i in tqdm(range(self.cfg.sampler.num_steps, 0, -1)):
-                vector = self.get_vector_field(x, t_grid[i], labels=labels)
+            brun = (
+                range(self.cfg.sampler.num_steps, 0, -1)
+                if self.quiet
+                else tqdm(range(self.cfg.sampler.num_steps, 0, -1))
+            )
+            for i in brun:
+                if from_gt or (from_gt is None and self.cfg.sampler.from_gt):
+                    vector = self.get_gt_vf(x, t_grid[i], labels=labels)
+                else:
+                    vector = self.get_vector_field(x, t_grid[i], labels=labels)
                 x = self.step_along_vector(x, i, vector)
                 steps.append(x)
 
         return x, steps
-
-    def step_along_vector(self, x, i, vector):
-        raise NotImplementedError
-
-    def precompute_sample_metadata(self, t_grid):
-        pass
 
     def get_vector_field(self, x, t, labels=None):
         t = t.expand(x.shape[0])
@@ -119,6 +136,3 @@ class BaseDensityModel(nn.Module):
         w = self.cfg.sampler.cfg_omega
         eps = w * eps_cond + (1 - w) * eps_uncond
         return eps
-
-    def get_gt_vf(self, noised, t):
-        raise NotImplementedError

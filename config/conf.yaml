@@ -33,6 +33,7 @@ sampler:
   rho: 2
   times_mode: cosine # polynomial | cosine | null
   cfg_omega: 1
+  from_gt: False
 
 optim:
   lr: 3e-3

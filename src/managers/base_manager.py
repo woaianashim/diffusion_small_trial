@@ -59,7 +59,7 @@ class BaseInteractiveManager:
             fig.data[1].y = tree_data[1].y
 
     @property
-    def layout(self):
+    def fig_ranges(self):
         edges_np = self.tree.edges.detach().cpu().numpy()
         pts = edges_np.reshape(-1, 2)  # shape (2N, 2)
         xmin, ymin = pts.min(axis=0)
@@ -80,6 +80,11 @@ class BaseInteractiveManager:
 
         x_range = [x_center - span / 2.0, x_center + span / 2.0]
         y_range = [y_center - span / 2.0, y_center + span / 2.0]
+        return x_range, y_range
+
+    @property
+    def layout(self):
+        x_range, y_range = self.fig_ranges
         return go.Layout(
             title=self.title,
             hovermode="closest",
