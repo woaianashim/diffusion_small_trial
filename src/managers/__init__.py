@@ -4,6 +4,7 @@ from .mask_edges import MaskEdges
 from .point_cloud_visualizer import PointCloudVisualizer
 from .sampling import Sampler
 from .tracks import Tracks
+from .forward_process import ForwardProcess
 
 __all__ = [
     "ConfigureTree",
@@ -12,4 +13,5 @@ __all__ = [
     "PointCloudVisualizer",
     "Sampler",
     "Tracks",
+    "ForwardProcess",
 ]
