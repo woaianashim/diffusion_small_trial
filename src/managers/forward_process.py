@@ -15,14 +15,24 @@ class ForwardProcess(BaseInteractiveManager):
     N: int = 5000
     title: str = "Forward process"
     point_size: int = 10
+    betas: Optional[torch.Tensor] = None  # <--- optional override
 
     def __post_init__(self):
         assert self.forward_step is not None
         tree_data = self.tree_data(self.show_masked_edges)
         steps = [self.tree.sample_points(self.N)[0]]
         timesteps = torch.linspace(0, 1, steps=self.num_steps)
-        self.algo.precompute_sample_metadata(timesteps)
-        betas = self.algo.beta
+        if self.betas is None:
+            # Default: use the algorithm's built-in schedule
+            self.algo.precompute_sample_metadata(timesteps)
+            self.betas = self.algo.beta
+        else:
+            # User-provided betas: basic sanity check
+            if self.betas.shape[0] != self.num_steps:
+                raise ValueError(
+                    f"betas must have shape (num_steps,), got {self.betas.shape}"
+                )
+        betas = self.betas
         assert isinstance(betas, torch.Tensor)
         for beta_t in tqdm(betas):
             steps.append(self.forward_step(steps[-1], beta_t))
