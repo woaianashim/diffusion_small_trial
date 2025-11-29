@@ -2,7 +2,7 @@ import torch
 import ipywidgets as widgets
 import plotly.graph_objects as go
 from IPython.display import display
-from .base_manager import BaseInteractiveManager
+from src.managers.base_manager import BaseInteractiveManager
 from enum import Enum
 from dataclasses import dataclass
 from typing import Callable, Optional
@@ -132,7 +132,7 @@ class VectorField(BaseInteractiveManager):
             return gt - pred
         elif self.mode == Mode.CUSTOM:
             assert self.custom_vf_getter is not None
-            return self.custom_vf_getter(self.algo, grid, self.t)
+            return self.custom_vf_getter(self.algo, grid, torch.tensor(self.t))
         else:
             with torch.no_grad():
                 pred = self.algo.get_vector_field(
