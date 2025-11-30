@@ -6,6 +6,7 @@ from typing import Sequence
 import plotly.graph_objects as go
 from functools import partial
 from dataclasses import dataclass
+from typing import Optional, Any
 
 
 import numpy as np
@@ -84,19 +85,24 @@ def compute_pattern_matches(x, patterns):
 
 @dataclass
 class PointCloudVisualizer(BaseInteractiveManager):
-
-    def __post_init__(self,points=None,points_labels=None,edges=None,edge_colors=None, highlight_color="red",default_color="blue"):
-        if points is None or points_labels is None:
-            self.points,self.points_labels = self.default_points_generators(points_labels)
+    points: Optional[Any] = None
+    points_labels: Optional[Any] = None
+    edges: Optional[Any] = None
+    edge_colors: Optional[Any] = None
+    highlight_color: str = "red"
+    default_color: str = "blue"
+    def __post_init__(self):
+        if self.points is None or self.points_labels is None:
+            self.points,self.points_labels = self.default_points_generators(self.points_labels)
         else:
-            self.points = points.cpu().numpy()
-            self.points_labels=points_labels.cpu().numpy()
+            self.points = self.points.cpu().numpy()
+            self.points_labels=self.points_labels.cpu().numpy()
 
         self.edges=self.algo.data.edges.cpu().numpy()
         self.edge_labels_flat=self.algo.data.labels.view(self.algo.data.labels.shape[0],-1).cpu().numpy()
-        self.base_colors=self.get_colors(edges,
-                                        edge_colors,default_color)
-        self.highlight_color=highlight_color
+        self.base_colors=self.get_colors(self.edges,
+                                        self.edge_colors,self.default_color)
+        self.highlight_color=self.highlight_color
 
 
     def default_points_generators(self,points_labels):
