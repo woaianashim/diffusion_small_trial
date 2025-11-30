@@ -4,9 +4,11 @@ uv pip install requirements.txt
 ```
 # Train
 ```
-python main.py
+python3 main.py +algo=fm
+or
+python3 main.py +algo=diffusion
 ```
 # Eval
 ```
-python main.py --config-name=eval
+python3 main.py mode=eval +algo=fm
 ```
