@@ -20,7 +20,7 @@ class ForwardProcess(BaseInteractiveManager):
     def __post_init__(self):
         assert self.forward_step is not None
         tree_data = self.tree_data(self.show_masked_edges)
-        steps = [self.tree.sample_points(self.N)[0]]
+        steps = [self.tree.sample_points(self.N)[0].to(self.algo.cfg.device)]
         timesteps = torch.linspace(0, 1, steps=self.num_steps).to(self.algo.cfg.device)
         if self.betas is None:
             # Default: use the algorithm's built-in schedule
@@ -35,7 +35,7 @@ class ForwardProcess(BaseInteractiveManager):
         betas = self.betas
         assert isinstance(betas, torch.Tensor)
         for beta_t in tqdm(betas):
-            steps.append(self.forward_step(steps[-1].to(self.algo.cfg.device), beta_t))
+            steps.append(self.forward_step(steps[-1], beta_t))
 
         steps = torch.stack(steps, dim=0).detach().cpu().numpy()  # TxBx2
         frames_data = [
