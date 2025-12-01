@@ -35,7 +35,7 @@ class ForwardProcess(BaseInteractiveManager):
         betas = self.betas
         assert isinstance(betas, torch.Tensor)
         for beta_t in tqdm(betas):
-            steps.append(self.forward_step(steps[-1], beta_t))
+            steps.append(self.forward_step(steps[-1].to(self.algo.cfg.device), beta_t))
 
         steps = torch.stack(steps, dim=0).detach().cpu().numpy()  # TxBx2
         frames_data = [
