@@ -74,6 +74,8 @@ class Diffusion(BaseDensityModel):
         return alpha_bar
 
     def get_gt_vf(self, noised, t, labels=None, custom_vf_fn=None):
+        noised = noised.to(self.cfg.device)
+        t = t.to(self.cfg.device)
         vf_fn = custom_vf_fn if custom_vf_fn else self.get_gt_vf_chunk
         alpha_bar = self._alpha_bar(t).to(self.cfg.device)
         batch_size = noised.shape[0]

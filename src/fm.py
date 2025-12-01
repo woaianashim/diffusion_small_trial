@@ -19,6 +19,8 @@ class FlowMatching(BaseDensityModel):
         return noised, u_target, t
 
     def get_gt_vf(self, noised, t, labels=None, custom_vf_fn=None):
+        noised = noised.to(self.cfg.device)
+        t = t.to(self.cfg.device)
         vf_fn = custom_vf_fn if custom_vf_fn else self.get_gt_vf_chunk
         batch_size = noised.shape[0]
 
@@ -49,6 +51,6 @@ class FlowMatching(BaseDensityModel):
         dist2 = (noise**2).sum(-1, keepdim=True)
         dist2 -= dist2.min(0, keepdim=True).values
         weight = torch.exp(-dist2 / 2)
-        diff_weighted = noise * weight
+        diff_weighted = (data_points[:, None] - noise) * weight
         E = diff_weighted.sum(dim=0) / (weight.sum(0) + 1e-9)
         return E

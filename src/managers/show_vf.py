@@ -122,9 +122,9 @@ class VectorField(BaseInteractiveManager):
 
     def get_vector_field(self, grid):
         if self.mode == Mode.GT:
-            return self.algo.get_gt_vf(grid, t=torch.tensor(self.t))
+            return self.algo.get_gt_vf(grid, t=torch.tensor(self.t)).cpu()
         elif self.mode == Mode.DIFF:
-            gt = self.algo.get_gt_vf(grid, t=torch.tensor(self.t))
+            gt = self.algo.get_gt_vf(grid, t=torch.tensor(self.t)).cpu()
             with torch.no_grad():
                 pred = self.algo.get_vector_field(
                     grid.to(self.cfg.device), torch.tensor(self.t).to(self.cfg.device)
@@ -132,7 +132,7 @@ class VectorField(BaseInteractiveManager):
             return gt - pred
         elif self.mode == Mode.CUSTOM:
             assert self.custom_vf_getter is not None
-            return self.custom_vf_getter(self.algo, grid, torch.tensor(self.t))
+            return self.custom_vf_getter(self.algo, grid, torch.tensor(self.t)).cpu()
         else:
             with torch.no_grad():
                 pred = self.algo.get_vector_field(
