@@ -21,7 +21,7 @@ class ForwardProcess(BaseInteractiveManager):
         assert self.forward_step is not None
         tree_data = self.tree_data(self.show_masked_edges)
         steps = [self.tree.sample_points(self.N)[0]]
-        timesteps = torch.linspace(0, 1, steps=self.num_steps)
+        timesteps = torch.linspace(0, 1, steps=self.num_steps).to(self.algo.cfg.device)
         if self.betas is None:
             # Default: use the algorithm's built-in schedule
             self.algo.precompute_sample_metadata(timesteps)
